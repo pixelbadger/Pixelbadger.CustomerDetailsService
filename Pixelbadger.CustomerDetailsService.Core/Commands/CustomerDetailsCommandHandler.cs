@@ -2,6 +2,7 @@
 using CustomerDetailsService.Model;
 using Microsoft.Extensions.Logging;
 using Pixelbadger.CustomerDetailsService.Core.Dtos;
+using Pixelbadger.CustomerDetailsService.Core.Model;
 using Pixelbadger.CustomerDetailsService.Core.Repository;
 
 namespace Pixelbadger.CustomerDetailsService.Core.Commands
@@ -19,23 +20,39 @@ namespace Pixelbadger.CustomerDetailsService.Core.Commands
             _logger = logger;
         }
 
-        public async Task Apply(CustomerDetailsCommands.CreateCustomerDetails command)
+        public async Task<int> Apply(CustomerDetailsCommands.CreateCustomerDetails command)
         {
             var customerDetails = _mapper.Map<CustomerDetails>(command.CustomerDetails);
             await _customerDetailsRepository.InsertCustomerDetails(customerDetails);
             await _customerDetailsRepository.PersistChanges();
+            return customerDetails.Id;
         }
 
         public async Task Apply(CustomerDetailsCommands.DeleteCustomerDetails command)
         {
             await _customerDetailsRepository.DeleteCustomerDetails(command.CustomerDetailsId);
+            await _customerDetailsRepository.PersistChanges();
         }
 
         public async Task Apply(CustomerDetailsCommands.UpdateCustomerDetails command)
         {
             var customerDetails = await _customerDetailsRepository.GetCustomerDetails(command.CustomerDetailsId);
-            // use automapper to map DTO values on to retrieved customer details
-            _mapper.Map(command.CustomerDetails, customerDetails);
+
+            customerDetails.Name = command.CustomerDetails.Name;
+            customerDetails.Email = command.CustomerDetails.Email;
+
+            foreach (var address in command.CustomerDetails.Addresses)
+            {
+                if (address.Id == 0)
+                {
+                    var newAddress = _mapper.Map<Address>(address);
+                    customerDetails.Addresses.Add(newAddress);
+                    continue;
+                }
+
+                var currentAddress = customerDetails.Addresses.SingleOrDefault(a => a.Id == address.Id);
+                if (currentAddress != null) _mapper.Map(address, currentAddress);
+            }
 
             await _customerDetailsRepository.UpdateCustomerDetails(customerDetails);
             await _customerDetailsRepository.PersistChanges();

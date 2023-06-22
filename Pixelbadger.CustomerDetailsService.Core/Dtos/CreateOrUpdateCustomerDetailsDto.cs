@@ -14,6 +14,6 @@ namespace Pixelbadger.CustomerDetailsService.Core.Dtos
         [Required]
         public string Email { get; init; } = string.Empty;
         [Required]
-        public List<CreateOrUpdateCustomerAddressDto> CustomerAddresses { get; set; } = new();
+        public List<CreateOrUpdateCustomerAddressDto> Addresses { get; set; } = new();
     }
 }

@@ -1,4 +1,5 @@
 ﻿using CustomerDetailsService.Model;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -31,15 +32,21 @@ namespace Pixelbadger.CustomerDetailsService.Core.Repository
 
         public Task<IEnumerable<CustomerDetails>> GetAllCustomerDetails()
         {
-            return Task.FromResult((IEnumerable<CustomerDetails>)_dbContext.CustomerDetails.ToList());
+            IEnumerable<CustomerDetails> list = _dbContext.CustomerDetails.Include(c => c.Addresses).ToList();
+            return Task.FromResult(list);
         }
 
         public async Task<CustomerDetails> GetCustomerDetails(int customerDetailsId)
         {
             _logger.LogInformation($"Fetching customer details for ID '{customerDetailsId}'");
 
-            return await _dbContext.CustomerDetails.FindAsync(customerDetailsId)
-                ?? throw new ArgumentException("The specified customer details record could not be found", nameof(customerDetailsId));
+            var customerDetails = await _dbContext.FindAsync<CustomerDetails>(customerDetailsId)
+                 ?? throw new ArgumentException("The specified customer details record could not be found", nameof(customerDetailsId));
+
+            // explicitly load the addresses child collection
+            _dbContext.Entry(customerDetails).Collection(c => c.Addresses).Load();
+
+            return customerDetails;
         }
 
         public async Task InsertCustomerDetails(CustomerDetails customerDetails)
@@ -55,7 +62,7 @@ namespace Pixelbadger.CustomerDetailsService.Core.Repository
 
         public Task UpdateCustomerDetails(CustomerDetails customerDetails)
         {
-            _dbContext.Entry(customerDetails).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
+            _dbContext.Entry(customerDetails).State = EntityState.Modified;
             return Task.CompletedTask;
         }
     }

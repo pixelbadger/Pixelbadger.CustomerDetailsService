@@ -4,6 +4,7 @@ namespace Pixelbadger.CustomerDetailsService.Core.Dtos
 {
     public record CreateOrUpdateCustomerAddressDto
     {
+        public int Id { get; set; }
         [Required]
         public string LineOne { get; set; } = string.Empty;
         public string LineTwo { get; set; } = string.Empty;
